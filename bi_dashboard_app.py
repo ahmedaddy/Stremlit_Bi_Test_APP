@@ -385,7 +385,7 @@ with tab1:
 
     st.markdown("<div class='section-header'>Revenue vs Profit Scatter</div>", unsafe_allow_html=True)
     fig_scat = px.scatter(
-        df.sample(600, random_state=1), x="revenue", y="profit",
+        df.sample(min(600, len(df)), random_state=1), x="revenue", y="profit",
         color="category", size="units", hover_data=["region", "channel", "csat"],
         color_discrete_sequence=COLORS, opacity=0.7,
         labels={"revenue":"Revenue ($)", "profit":"Profit ($)"}
