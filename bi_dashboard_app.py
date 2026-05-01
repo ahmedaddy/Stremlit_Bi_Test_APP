@@ -509,7 +509,7 @@ with tab2:
     print(morocco_geojson["features"][0]["properties"])
     fig_morocco.update_layout(
         geo=dict(
-            # scope="africa",
+            scope="africa",
             resolution=50,
             showland=True,       landcolor="#1a2035",
             showocean=True,      oceancolor="#0f1117",
