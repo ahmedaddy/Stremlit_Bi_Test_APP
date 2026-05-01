@@ -439,6 +439,130 @@ with tab2:
     chart_layout(fig_rt, 380)
     st.plotly_chart(fig_rt, use_container_width=True)
 
+    # ── Morocco Map ──────────────────────────────────────────────────────────
+    st.markdown("<div class='section-header'>Morocco — Key Cities & Office Locations</div>", unsafe_allow_html=True)
+
+    morocco_cities = pd.DataFrame({
+        "city": [
+            "Casablanca", "Rabat", "Marrakech", "Fès", "Tanger",
+            "Agadir", "Meknès", "Oujda", "Laâyoune", "Dakhla"
+        ],
+        "lat": [33.5731, 34.0209, 31.6295, 34.0531, 35.7595,
+                30.4278, 33.8935, 34.6814, 27.1536, 23.6848],
+        "lon": [-7.5898, -6.8416, -7.9811, -5.0000, -5.8340,
+                -9.5981, -5.5473, -1.9086, -13.2033, -15.9570],
+        "type": [
+            "HQ", "Regional Office", "Sales Hub", "Sales Hub", "Distribution",
+            "Distribution", "Sales Hub", "Distribution", "Sales Hub", "Distribution"
+        ],
+        "employees": [320, 145, 98, 87, 112, 76, 65, 54, 43, 38],
+        "revenue_m":  [18.4, 9.2, 7.1, 6.3, 8.5, 5.4, 4.8, 3.9, 3.1, 2.7],
+    })
+
+    # Color mapping per office type
+    type_colors = {
+        "HQ":              "#6366f1",
+        "Regional Office": "#34d399",
+        "Sales Hub":       "#f59e0b",
+        "Distribution":    "#60a5fa",
+    }
+    morocco_cities["color"] = morocco_cities["type"].map(type_colors)
+    morocco_cities["size"]  = morocco_cities["revenue_m"] * 3.5  # scale bubble size
+
+    fig_morocco = go.Figure()
+
+    # One trace per type for a proper legend
+    for office_type, color in type_colors.items():
+        subset = morocco_cities[morocco_cities["type"] == office_type]
+        if subset.empty:
+            continue
+        fig_morocco.add_trace(go.Scattergeo(
+            lat=subset["lat"],
+            lon=subset["lon"],
+            mode="markers+text",
+            name=office_type,
+            marker=dict(
+                size=subset["size"],
+                color=color,
+                opacity=0.88,
+                line=dict(width=1.5, color="#0f1117"),
+            ),
+            text=subset["city"],
+            textposition="top center",
+            textfont=dict(color="#e8eaf0", size=11, family="DM Sans"),
+            customdata=subset[["employees", "revenue_m"]].values,
+            hovertemplate=(
+                "<b>%{text}</b><br>"
+                "Type: " + office_type + "<br>"
+                "Employees: %{customdata[0]}<br>"
+                "Revenue: $%{customdata[1]}M<extra></extra>"
+            ),
+        ))
+    import json
+
+    with open("morocco.geojson", "r") as f:
+        morocco_geojson = json.load(f)
+    locations = [f["properties"]["id"] for f in morocco_geojson["features"]]
+    z_values = [1] * len(locations)
+    print(morocco_geojson["type"])
+    print(len(morocco_geojson.get("features", [])))
+    print(morocco_geojson["features"][0]["properties"])
+    fig_morocco.update_layout(
+        geo=dict(
+            # scope="africa",
+            resolution=50,
+            showland=True,       landcolor="#1a2035",
+            showocean=True,      oceancolor="#0f1117",
+            showlakes=True,      lakecolor="#0f1117",
+            showrivers=True,     rivercolor="#1e2535",
+            showcountries=False,  countrycolor="#2a3550",
+            showcoastlines=True, coastlinecolor="#2a3550",
+            bgcolor=CHART_BG,
+            lonaxis=dict(range=[-17.5, -0.5]),
+            lataxis=dict(range=[21.0, 36.5]),
+            center=dict(lat=29.0, lon=-8.5),
+            projection_type="mercator",
+        ),
+        legend=dict(
+            title=dict(text="Office Type", font=dict(color=TEXT_COLOR, size=12)),
+            bgcolor="rgba(22,27,39,0.85)",
+            bordercolor="#2a3550",
+            borderwidth=1,
+            font=dict(color=TEXT_COLOR, size=12),
+            itemsizing="constant",
+            x=0.01, y=0.99,
+            xanchor="left", yanchor="top",
+        ),
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=500,
+        paper_bgcolor=PAPER_BG,
+        plot_bgcolor=CHART_BG,
+        font=dict(family="DM Sans", color=TEXT_COLOR),
+    )
+    fig_morocco.add_trace(go.Choropleth(
+        geojson=morocco_geojson,
+        locations=locations,
+        z=z_values,
+
+        featureidkey="properties.id",  # 🔥 THIS IS CRITICAL
+
+        colorscale=[[0, "#1a2035"], [1, "#1a2035"]],
+        showscale=False,
+
+        marker_line_width=1.5,
+        marker_line_color="#2a3550",
+
+        hoverinfo="skip",
+    ))
+
+    st.plotly_chart(fig_morocco, use_container_width=True)
+
+    # Summary table below the map
+    st.markdown("<div class='section-header'>Morocco Office Summary</div>", unsafe_allow_html=True)
+    display_morocco = morocco_cities[["city","type","employees","revenue_m"]].copy()
+    display_morocco.columns = ["City", "Office Type", "Employees", "Revenue ($M)"]
+    display_morocco["Revenue ($M)"] = display_morocco["Revenue ($M)"].apply(lambda x: f"${x:.1f}M")
+    st.dataframe(display_morocco, use_container_width=True, hide_index=True)
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 3 · PRODUCTS
 # ══════════════════════════════════════════════════════════════════════════════
